@@ -8,8 +8,19 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Applies validation and persistence rules for sandbox bookings.
+ */
 class BookingService
 {
+    /**
+     * Validate and persist a booking while preventing overlapping reservations.
+     *
+     * @param  array<string, mixed>  $data  Validated booking input.
+     * @return Booking The newly created booking.
+     *
+     * @throws ValidationException When a booking violates a business rule.
+     */
     public function create(array $data): Booking
     {
         $startsAt = CarbonImmutable::parse($data['starts_at'], 'UTC')->utc();
@@ -52,6 +63,14 @@ class BookingService
         });
     }
 
+    /**
+     * Reject booking durations longer than two hours.
+     *
+     * @param  CarbonImmutable  $startsAt  The booking start in UTC.
+     * @param  CarbonImmutable  $endsAt  The booking end in UTC.
+     *
+     * @throws ValidationException When the booking exceeds the duration limit.
+     */
     private function assertWithinTwoHours(CarbonImmutable $startsAt, CarbonImmutable $endsAt): void
     {
         if ($endsAt->getTimestamp() - $startsAt->getTimestamp() > 2 * 60 * 60) {
@@ -61,6 +80,14 @@ class BookingService
         }
     }
 
+    /**
+     * Reject bookings that intersect any daily UTC maintenance window.
+     *
+     * @param  CarbonImmutable  $startsAt  The booking start in UTC.
+     * @param  CarbonImmutable  $endsAt  The booking end in UTC.
+     *
+     * @throws ValidationException When the booking intersects maintenance.
+     */
     private function assertNotInMaintenanceWindow(CarbonImmutable $startsAt, CarbonImmutable $endsAt): void
     {
         for ($day = $startsAt->startOfDay(); $day->lessThan($endsAt); $day = $day->addDay()) {

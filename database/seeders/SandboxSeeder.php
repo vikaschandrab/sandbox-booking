@@ -5,6 +5,9 @@ namespace Database\Seeders;
 use App\Models\Sandbox;
 use Illuminate\Database\Seeder;
 
+/**
+ * Seeds the example sandbox inventory.
+ */
 class SandboxSeeder extends Seeder
 {
     /**

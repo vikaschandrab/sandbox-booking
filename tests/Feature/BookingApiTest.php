@@ -9,22 +9,34 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
+/**
+ * Verifies booking APIs, validation rules, and related user flows.
+ */
 class BookingApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    /**
+     * Set a fixed current time for deterministic booking tests.
+     */
     protected function setUp(): void
     {
         parent::setUp();
         Carbon::setTestNow('2026-10-25 00:00:00 UTC');
     }
 
+    /**
+     * Restore the system clock after each test.
+     */
     protected function tearDown(): void
     {
         Carbon::setTestNow();
         parent::tearDown();
     }
 
+    /**
+     * Verify sandbox and UTC-day booking listing endpoints.
+     */
     public function test_sandboxes_and_bookings_can_be_listed_for_a_utc_day(): void
     {
         $sandbox = Sandbox::create(['name' => 'linux-1', 'os_family' => 'linux']);
@@ -46,6 +58,9 @@ class BookingApiTest extends TestCase
             ->assertJsonPath('data.0.sandbox.name', 'linux-1');
     }
 
+    /**
+     * Verify a booking can be created and an adjacent booking is allowed.
+     */
     public function test_a_booking_can_be_created_and_adjacent_bookings_are_allowed(): void
     {
         $sandbox = Sandbox::create(['name' => 'windows-1', 'os_family' => 'windows']);
@@ -58,6 +73,9 @@ class BookingApiTest extends TestCase
             ->assertCreated();
     }
 
+    /**
+     * Verify that the booking page exposes its schedule and booking form.
+     */
     public function test_the_booking_page_contains_the_day_view_and_booking_form(): void
     {
         $this->get('/')
@@ -68,6 +86,9 @@ class BookingApiTest extends TestCase
             ->assertSee('Create booking');
     }
 
+    /**
+     * Verify that sandbox seeding can be repeated without duplicate rows.
+     */
     public function test_sandbox_seeder_can_be_run_more_than_once(): void
     {
         Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\SandboxSeeder']);
@@ -76,6 +97,9 @@ class BookingApiTest extends TestCase
         $this->assertSame(5, Sandbox::count());
     }
 
+    /**
+     * Verify overlapping bookings are rejected and cancellation frees the slot.
+     */
     public function test_overlapping_bookings_are_rejected_but_cancellation_frees_the_slot(): void
     {
         $sandbox = Sandbox::create(['name' => 'windows-1', 'os_family' => 'windows']);
@@ -94,6 +118,9 @@ class BookingApiTest extends TestCase
             ->assertCreated();
     }
 
+    /**
+     * Verify that bookings longer than two hours are rejected.
+     */
     public function test_bookings_longer_than_two_hours_are_rejected(): void
     {
         $sandbox = Sandbox::create(['name' => 'linux-1', 'os_family' => 'linux']);
@@ -103,6 +130,9 @@ class BookingApiTest extends TestCase
             ->assertJsonValidationErrors('ends_at');
     }
 
+    /**
+     * Verify that bookings overlapping the UTC maintenance window are rejected.
+     */
     public function test_bookings_overlapping_utc_maintenance_are_rejected(): void
     {
         $sandbox = Sandbox::create(['name' => 'linux-1', 'os_family' => 'linux']);
@@ -112,6 +142,9 @@ class BookingApiTest extends TestCase
             ->assertJsonValidationErrors('starts_at');
     }
 
+    /**
+     * Verify that timezone offsets are converted to UTC before validation.
+     */
     public function test_timezone_offsets_are_normalized_to_utc_before_business_rules(): void
     {
         $sandbox = Sandbox::create(['name' => 'linux-1', 'os_family' => 'linux']);
@@ -124,6 +157,14 @@ class BookingApiTest extends TestCase
             ->assertJsonValidationErrors('starts_at');
     }
 
+    /**
+     * Build valid booking input for a sandbox and UTC time range.
+     *
+     * @param  Sandbox  $sandbox  The sandbox to reserve.
+     * @param  string  $start  The UTC start time in HH:MM format.
+     * @param  string  $end  The UTC end time in HH:MM format.
+     * @return array<string, int|string> The booking request payload.
+     */
     private function bookingData(Sandbox $sandbox, string $start, string $end): array
     {
         return [

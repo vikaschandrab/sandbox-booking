@@ -12,8 +12,17 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Handles API requests for booking schedules and reservations.
+ */
 class BookingController extends Controller
 {
+    /**
+     * List bookings that overlap the requested UTC date.
+     *
+     * @param  Request  $request  The incoming request containing an optional date.
+     * @return JsonResponse The bookings overlapping the requested day.
+     */
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -35,6 +44,13 @@ class BookingController extends Controller
         ]);
     }
 
+    /**
+     * Create a booking after validating its business rules.
+     *
+     * @param  StoreBookingRequest  $request  The validated booking details.
+     * @param  BookingService  $service  The service that enforces booking rules.
+     * @return JsonResponse The created booking or a validation/conflict response.
+     */
     public function store(StoreBookingRequest $request, BookingService $service): JsonResponse
     {
         try {
@@ -60,6 +76,12 @@ class BookingController extends Controller
         }
     }
 
+    /**
+     * Cancel an existing booking.
+     *
+     * @param  Booking  $booking  The booking to cancel.
+     * @return JsonResponse A confirmation response.
+     */
     public function destroy(Booking $booking): JsonResponse
     {
         $booking->delete();

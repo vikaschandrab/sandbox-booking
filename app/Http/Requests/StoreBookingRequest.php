@@ -5,10 +5,15 @@ namespace App\Http\Requests;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
+/**
+ * Validates booking creation requests.
+ */
 class StoreBookingRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
+     *
+     * @return bool Booking creation is available without authentication.
      */
     public function authorize(): bool
     {
