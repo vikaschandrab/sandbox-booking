@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\Sandbox;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Tests\TestCase;
 
 class BookingApiTest extends TestCase
@@ -65,6 +66,14 @@ class BookingApiTest extends TestCase
             ->assertSee('Analyst name')
             ->assertSee('Sample reference')
             ->assertSee('Create booking');
+    }
+
+    public function test_sandbox_seeder_can_be_run_more_than_once(): void
+    {
+        Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\SandboxSeeder']);
+        Artisan::call('db:seed', ['--class' => 'Database\\Seeders\\SandboxSeeder']);
+
+        $this->assertSame(5, Sandbox::count());
     }
 
     public function test_overlapping_bookings_are_rejected_but_cancellation_frees_the_slot(): void

@@ -12,12 +12,17 @@ class SandboxSeeder extends Seeder
      */
     public function run(): void
     {
-        Sandbox::insert([
+        foreach ([
             ['name' => 'win10-sandbox-1', 'os_family' => 'windows'],
             ['name' => 'win11-sandbox-1', 'os_family' => 'windows'],
             ['name' => 'ubuntu-sandbox-1', 'os_family' => 'linux'],
             ['name' => 'ubuntu-sandbox-2', 'os_family' => 'linux'],
             ['name' => 'win10-sandbox-2', 'os_family' => 'windows'],
-        ]);
+        ] as $sandbox) {
+            Sandbox::updateOrCreate(
+                ['name' => $sandbox['name']],
+                ['os_family' => $sandbox['os_family']],
+            );
+        }
     }
 }
