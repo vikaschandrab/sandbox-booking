@@ -68,38 +68,13 @@ Validation failures return `422` with field errors. A concurrent slot conflict t
 
 ### Verify concurrent bookings
 
-The regular test suite uses in-memory SQLite and does not simulate concurrent database transactions. To smoke-test concurrency, configure `.env` to use MySQL 8/InnoDB (or compatible MariaDB), migrate and seed the database, and run the app behind a server that can handle concurrent requests (such as Apache or PHP-FPM). Do not use SQLite or Laravel's single-process development server for this check.
-
-In PowerShell, submit two identical requests at once. Replace the sandbox ID if needed:
+The regular test suite uses in-memory SQLite and does not simulate concurrent database transactions. To verify the row-locking behavior against MySQL 8/InnoDB or compatible MariaDB, configure `.env` for that database, apply migrations, and run:
 
 ```powershell
-$start = [DateTime]::UtcNow.AddDays(1).Date.AddHours(10).ToString("yyyy-MM-ddTHH:mm:ssZ")
-$end = [DateTime]::UtcNow.AddDays(1).Date.AddHours(11).ToString("yyyy-MM-ddTHH:mm:ssZ")
-$payload = @{
-    sandbox_id = 1
-    analyst_name = "Concurrency test"
-    sample_reference = "concurrency-smoke-test"
-    starts_at = $start
-    ends_at = $end
-} | ConvertTo-Json
-
-$jobs = 1..2 | ForEach-Object {
-    Start-Job -ArgumentList $payload -ScriptBlock {
-        param($body)
-        try {
-            (Invoke-WebRequest -Uri "http://127.0.0.1:8000/api/bookings" `
-                -Method Post -ContentType "application/json" `
-                -Headers @{ Accept = "application/json" } -Body $body).StatusCode
-        } catch {
-            [int]$_.Exception.Response.StatusCode
-        }
-    }
-}
-$statuses = $jobs | Receive-Job -Wait -AutoRemoveJob
-$statuses
+php scripts/concurrency-smoke.php
 ```
 
-Expected result: exactly one `201` and one rejection (`409` or `422`). Clean up the successful test booking from the UI or with `DELETE /api/bookings/{id}`.
+The script launches two independent PHP processes against the configured database, verifies that one booking succeeds while the overlapping one is rejected, and deletes its temporary sandbox and booking afterward. It refuses to run against SQLite.
 
 ## Deployment
 
